@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <!-- This Menu Item will appear in the Upper bar, That's why It needs NO parent or action -->
+    <menuitem id="integration_with_social_platform_root" name="Integration Social Platform" sequence="1">
+        <!-- This Menu Item must have a parent and an action -->
+        <menuitem id="social_account_categ" name="Social Account" action="integration_with_social_platform.social_account_view_action"/>
+    </menuitem>
+</odoo>
