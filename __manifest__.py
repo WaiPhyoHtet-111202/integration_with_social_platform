@@ -10,7 +10,9 @@
     'data': [
         'security/ir.model.access.csv',
         'views/social_account.xml',
+        'views/customer_account_identity.xml',
         'views/menu.xml',
+        'views/res_partner_inherit.xml',
     ],
     'installable': True,
     'application': True,

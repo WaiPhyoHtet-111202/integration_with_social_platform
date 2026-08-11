@@ -4,5 +4,6 @@
     <menuitem id="integration_with_social_platform_root" name="Integration Social Platform" sequence="1">
         <!-- This Menu Item must have a parent and an action -->
         <menuitem id="social_account_categ" name="Social Account" action="integration_with_social_platform.social_account_view_action"/>
+        <menuitem id="customer_account_identity_categ" name="Customer Account Identity" action="integration_with_social_platform.customer_account_identity_view_action"/>
     </menuitem>
 </odoo>
