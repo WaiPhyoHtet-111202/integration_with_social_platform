@@ -9,7 +9,7 @@
                 <sheet>
                     <group>
                         <group>
-                            <field name="name"/>
+                            <field name="user_name"/>
                             <field name="first_name"/>
                             <field name="platform"/>
                         </group>

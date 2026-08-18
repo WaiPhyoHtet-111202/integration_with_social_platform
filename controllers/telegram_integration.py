@@ -20,7 +20,15 @@ class TelegramIntegration(http.Controller):
             user_id = message_from.get('id')
             existing_user = customer_account.sudo().search([('external_id','=',user_id)])
             if existing_user:
-                return
+                crm_lead = request.env['crm.lead'].sudo().search([('partner_id','=',existing_user.partner_id)])
+                crm_lead.message_post(
+                    body=message.get('text'),
+                    message_type='comment'
+                )
+                return self.valid_response({
+                    'success' : False,
+                    'message' : "Customer Account Already Exists",
+                })
             user_name = message_from.get('username')
             name = message_from.get('first_name')
             platform = 'Telegram'
@@ -35,6 +43,14 @@ class TelegramIntegration(http.Controller):
                 'platform' : platform,
                 'partner_id' : partner.id,
             })
+            crm_lead = request.env['crm.lead'].sudo().create({
+                'partner_id' : partner.id,
+                "description" : "This Customer is come From Telegram",
+            })
+            crm_lead.message_post(
+                body=message.get('text'),
+                message_type='comment'
+            )
             return self.valid_response({
                 'success' : True,
                 'message' : 'New Customer Account Created',
