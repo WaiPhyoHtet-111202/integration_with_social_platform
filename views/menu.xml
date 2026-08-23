@@ -5,5 +5,7 @@
         <!-- This Menu Item must have a parent and an action -->
         <menuitem id="social_account_categ" name="Social Account" action="integration_with_social_platform.social_account_view_action"/>
         <menuitem id="customer_account_identity_categ" name="Customer Account Identity" action="integration_with_social_platform.customer_account_identity_view_action"/>
+        <menuitem id="res_partner_inherit_categ" name="Contacts" action="contacts.action_contacts"/>
+        <menuitem id="crm_lead_inherit_categ" name="Crm Lead" action="crm.crm_lead_action_pipeline"/>
     </menuitem>
 </odoo>

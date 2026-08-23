@@ -1,6 +1,9 @@
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
+import logging
 import requests
+
+_logger = logging.getLogger(__name__)
 
 class SocialAccount(models.Model):
     _name = "social.acc"
@@ -14,15 +17,21 @@ class SocialAccount(models.Model):
 
     def sync_account(self):
         self.ensure_one()
-        print(self.access_token)
-        response = requests.get("https://api.telegram.org/bot" + self.access_token + "/getMe")
-        if not response:
-            raise ValidationError("Invalid Token")
+        response = requests.get(
+            "https://api.telegram.org/bot" + self.access_token + "/getMe",
+            timeout=10,
+        )
+        response.raise_for_status()
         data = response.json()
-        result = data['result']
+        if not data.get('ok'):
+            raise ValidationError(data.get('description') or "Invalid Telegram token")
+
+        result = data.get('result') or {}
+        if not result.get("id") or not result.get("username"):
+            raise ValidationError("Telegram bot data is incomplete")
+
         self.account_id = result["id"]
         self.bot_name = result["username"]
-
 
     def action_connect(self):
         self.ensure_one()
@@ -34,16 +43,18 @@ class SocialAccount(models.Model):
             f"https://api.telegram.org/bot"
             f"{self.access_token}/setWebhook"
         )
-        response = requests.post(telegram_url,params={'url':url},timeout=10)
+        response = requests.post(telegram_url, params={'url': url}, timeout=10)
         print(f"Status : {response.status_code}")
         print(f"Error : {response.text}")
         response.raise_for_status()
         return True
 
-
     @api.model
     def create(self, values):
         record = super(SocialAccount,self).create(values)
-        record.sync_account()
+        try:
+            record.sync_account()
+        except Exception:
+            _logger.exception("Failed to sync Telegram account")
+            raise
         return record
-

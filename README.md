@@ -8,3 +8,20 @@ Integration With Telegram
 4. Need To Connect With My Api To Telegram => https://api.telegram.org/bot{My Token}/setWebhook?url={My Https Link With Api}
 5. Need To Check Info With https://api.telegram.org/bot{My Token}/getWebhookInfo
 
+To Save Image From Telegram
+
+1.
+Telegram update ထဲက file_id ကိုယူ
+2.
+Telegram API getFile နဲ့ file path ရယူ
+3.
+file/bot<TOKEN>/<file_path> URL ကနေ file download လုပ်
+4.
+Download လုပ်ထားတဲ့ bytes ကို base64 encode လုပ်
+5.
+ir.attachment create လုပ်
+6.
+အဲဒီ attachment ကို crm.lead.message_post() နဲ့ chatter ထဲချိတ်
+
+photoကိုchatterမှာပေါ်ချင်ရင်bodyမှာHtml tagအနေနဲ့ထည့်ပေးရန်လို odooကhtmlဖြစ်ကြောင်းသိစေရန်Markupသုံးရန်လို 
+eg => body = Markup(f"""<p>Photo</><img src="/web/image/attachment id">"")
