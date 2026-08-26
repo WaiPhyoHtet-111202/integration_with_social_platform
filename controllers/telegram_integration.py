@@ -18,7 +18,6 @@ class TelegramIntegration(http.Controller):
     def save_file(self, file_id, crm_lead):
         social_acc = request.env['social.acc'].sudo().search([('platform', '=', 'telegram')], limit=1)
         access_token = social_acc.access_token
-        _logger.info(access_token)
         response = requests.get(
             "https://api.telegram.org/bot" + access_token + "/getFile?file_id=" + file_id,
             timeout=10,
@@ -35,9 +34,9 @@ class TelegramIntegration(http.Controller):
         find_index = file_path.find('.') + 1
         file_type = file_path[find_index:]
         _logger.info(file_type)
-        file_reponse = requests.get(download_url, timeout=10)
-        file_reponse.raise_for_status()
-        file_content = file_reponse.content
+        file_response = requests.get(download_url, timeout=10)
+        file_response.raise_for_status()
+        file_content = file_response.content
         encode_string = base64.b64encode(file_content)
         attachment = request.env['ir.attachment'].sudo().create({
             'name': 'Telegram Photo',
@@ -49,6 +48,16 @@ class TelegramIntegration(http.Controller):
         })
         return attachment
 
+    def save_chatter_message(self, crm_lead, attachment):
+        body = Markup(f"""
+                           <img src="/web/image/{attachment.id}" style="max-width:200px ; max-height:200px;" />
+                            """)
+        return crm_lead.message_post(
+            body=body,
+            message_type='comment',
+            attachment_ids=[attachment.id]
+        )
+
     @http.route('/api/telegram/webhook', type='http', auth="public", methods=['POST'], csrf=False)
     def webhook(self, **kwargs):
         try:
@@ -57,7 +66,6 @@ class TelegramIntegration(http.Controller):
             _logger.info(data)
             message = data.get('message')
             if not message:
-                _logger.info("Telegram update ignored because it has no message payload: %s", data)
                 return self.valid_response({
                     'success': True,
                     'message': 'Update ignored',
@@ -85,31 +93,27 @@ class TelegramIntegration(http.Controller):
                     best_photo = photo[-1]
                     file_id = best_photo['file_id']
                     attachment = self.save_file(file_id, crm_lead)
-                    _logger.info(crm_lead.id)
-                    body = Markup(f"""
-                    <p>Telegram Photo</p>
-                   <img src="/web/image/{attachment.id}" style="max-width:200px ; max-height:200px;" />
-                    """)
-                    crm_lead.message_post(
-                        body=body,
-                        message_type='comment',
-                        attachment_ids=[attachment.id]
-                    )
+                    self.save_chatter_message(crm_lead,attachment)
 
                 elif crm_lead and message_text:
                     crm_lead.message_post(
                         body=message_text,
                         message_type='comment'
                     )
-                else:
-                    _logger.info(sticker)
-                    file_id = sticker['file_id']
+                elif sticker:
+                    file_id = sticker['thumbnail']['file_id']
                     attachment = self.save_file(file_id, crm_lead)
-                    body = Markup(self.save_sticker(attachment))
+                    self.save_chatter_message(crm_lead,attachment)
+                else:
+                    file_id = message.get('video')['file_id']
+                    attachment = self.save_file(file_id,crm_lead)
+                    body = Markup(f"""
+                                   <video source="/web/content/{attachment.id}" type="video/mp4"></video>
+                                   """)
                     crm_lead.message_post(
                         body=body,
                         message_type="comment",
-                        attachment_ids=[attachment.id]
+                        attachment_ids = [attachment.id]
                     )
                 return self.valid_response({
                     'success': True,
@@ -141,6 +145,17 @@ class TelegramIntegration(http.Controller):
                     body=message_text,
                     message_type='comment'
                 )
+
+            elif photo:
+                best_photo = photo[-1]
+                file_id = best_photo['file_id']
+                attachment = self.save_file(file_id, crm_lead)
+                self.save_chatter_message(crm_lead,attachment)
+
+            elif sticker:
+                file_id = sticker['thumbnail']['file_id']
+                attachment = self.save_file(file_id, crm_lead)
+                self.save_chatter_message(crm_lead,attachment)
             return self.valid_response({
                 'success': True,
                 'message': 'New Customer Account Created',
