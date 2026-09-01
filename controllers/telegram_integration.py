@@ -38,6 +38,16 @@ class TelegramIntegration(http.Controller):
         file_response.raise_for_status()
         file_content = file_response.content
         encode_string = base64.b64encode(file_content)
+        if file_type == 'mp4':
+            attachment = request.env['ir.attachment'].sudo().create({
+                'name': 'Telegram Video',
+                'type': 'binary',
+                'datas': encode_string,
+                'mimetype': f'video/{file_type}',
+                'res_model': crm_lead._name,
+                'res_id': crm_lead.id
+            })
+            return attachment
         attachment = request.env['ir.attachment'].sudo().create({
             'name': 'Telegram Photo',
             'type': 'binary',
@@ -57,6 +67,11 @@ class TelegramIntegration(http.Controller):
             message_type='comment',
             attachment_ids=[attachment.id]
         )
+
+    def send_notification(self,data):
+        channel = 'telegram_updates'
+        message = 'telegram_message'
+        self.env['bus.bus'].sudo()._sendone(channel,message,data)
 
     @http.route('/api/telegram/webhook', type='http', auth="public", methods=['POST'], csrf=False)
     def webhook(self, **kwargs):
@@ -93,27 +108,35 @@ class TelegramIntegration(http.Controller):
                     best_photo = photo[-1]
                     file_id = best_photo['file_id']
                     attachment = self.save_file(file_id, crm_lead)
-                    self.save_chatter_message(crm_lead,attachment)
+                    self.save_chatter_message(crm_lead, attachment)
 
                 elif crm_lead and message_text:
                     crm_lead.message_post(
                         body=message_text,
                         message_type='comment'
                     )
+                    self.send_notification({
+                        'type' : 'Telegram Messages',
+                        'lead_id' : crm_lead.id,
+                        'message' : message_text,
+                    })
                 elif sticker:
                     file_id = sticker['thumbnail']['file_id']
                     attachment = self.save_file(file_id, crm_lead)
-                    self.save_chatter_message(crm_lead,attachment)
+                    self.save_chatter_message(crm_lead, attachment)
                 else:
                     file_id = message.get('video')['file_id']
-                    attachment = self.save_file(file_id,crm_lead)
-                    body = Markup(f"""
-                                   <video source="/web/content/{attachment.id}" type="video/mp4"></video>
-                                   """)
+                    attachment = self.save_file(file_id, crm_lead)
+                    video_url = f"/web/content/{attachment.id}?download=false"
+
+                    body = Markup(f'''
+                        Telegram video: <a href="{video_url}" target="_blank">Play video</a>
+                    ''')
+
                     crm_lead.message_post(
                         body=body,
                         message_type="comment",
-                        attachment_ids = [attachment.id]
+                        attachment_ids=[attachment.id],
                     )
                 return self.valid_response({
                     'success': True,
@@ -150,12 +173,26 @@ class TelegramIntegration(http.Controller):
                 best_photo = photo[-1]
                 file_id = best_photo['file_id']
                 attachment = self.save_file(file_id, crm_lead)
-                self.save_chatter_message(crm_lead,attachment)
+                self.save_chatter_message(crm_lead, attachment)
 
             elif sticker:
                 file_id = sticker['thumbnail']['file_id']
                 attachment = self.save_file(file_id, crm_lead)
-                self.save_chatter_message(crm_lead,attachment)
+                self.save_chatter_message(crm_lead, attachment)
+
+            else:
+                video = message.get('video')
+                file_id = video['file_id']
+                attachment = self.save_file(file_id, crm_lead)
+                video_url = f"/web/content/{attachment.id}?download=false"
+                body = Markup(f'''
+                              Telegram Video <a href="{video_url}" target="_blank">Play video</a>
+                              ''')
+                crm_lead.message_post(
+                    body=body,
+                    message_type='comment',
+                    attachment_ids=[attachment.id],
+                )
             return self.valid_response({
                 'success': True,
                 'message': 'New Customer Account Created',

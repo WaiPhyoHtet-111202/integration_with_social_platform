@@ -6,7 +6,7 @@
     This Module is used to create new CRM lead For Odoo
     """,
     'license': 'LGPL-3',
-    'depends': ['crm', 'base'],
+    'depends': ['crm', 'base','bus'],
     'data': [
         'security/ir.model.access.csv',
         'views/social_account.xml',
@@ -14,6 +14,13 @@
         'views/menu.xml',
         'views/res_partner_inherit.xml',
     ],
+
+    'assets' : {
+        'web.assets_backend' : [
+            'integration_with_social_platform/static/src/js/bus.js'
+        ]
+    },
+    
     'installable': True,
     'application': True,
 }
