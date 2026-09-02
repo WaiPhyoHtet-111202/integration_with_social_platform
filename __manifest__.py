@@ -15,12 +15,12 @@
         'views/res_partner_inherit.xml',
     ],
 
-    'assets' : {
-        'web.assets_backend' : [
-            'integration_with_social_platform/static/src/js/bus.js'
-        ]
-    },
-    
+    # 'assets' : {
+    #     'web.assets_backend' : [
+    #         'integration_with_social_platform/static/src/js/bus.js'
+    #     ]
+    # },
+    'images' : ['static/description/icon.png'],
     'installable': True,
     'application': True,
 }

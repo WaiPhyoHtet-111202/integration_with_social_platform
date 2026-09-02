@@ -5,9 +5,9 @@
         <field name="model">social.acc</field>
         <field name="arch" type="xml">
             <form string="social_account_form">
-                <header>
-                    <button name="action_connect" type="object" string="Connect" class="btn btn-primary"/>
-                </header>
+<!--                <header>-->
+<!--                    <button name="action_connect" type="object" string="Connect" class="btn btn-primary"/>-->
+<!--                </header>-->
                 <sheet>
                     <group>
                         <field name="name"/>

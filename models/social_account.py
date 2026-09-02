@@ -33,21 +33,18 @@ class SocialAccount(models.Model):
         self.account_id = result["id"]
         self.bot_name = result["username"]
 
-    def action_connect(self):
-        self.ensure_one()
-        web_base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
-        https_url = f"https{web_base_url[4:]}"
-        print(https_url)
-        url = https_url + "/api/telegram/webhook"
-        telegram_url = (
-            f"https://api.telegram.org/bot"
-            f"{self.access_token}/setWebhook"
-        )
-        response = requests.post(telegram_url, params={'url': url}, timeout=10)
-        print(f"Status : {response.status_code}")
-        print(f"Error : {response.text}")
-        response.raise_for_status()
-        return True
+    # def action_connect(self):
+    #     self.ensure_one()
+    #     web_base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+    #     https_url = f"https{web_base_url[4:]}"
+    #     url = https_url + "/api/telegram/webhook"
+    #     telegram_url = (
+    #         f"https://api.telegram.org/bot"
+    #         f"{self.access_token}/setWebhook"
+    #     )
+    #     response = requests.post(telegram_url, params={'url': url}, timeout=10)
+    #     response.raise_for_status()
+    #     return True
 
     @api.model
     def create(self, values):

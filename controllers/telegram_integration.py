@@ -33,7 +33,6 @@ class TelegramIntegration(http.Controller):
         download_url = f"https://api.telegram.org/file/bot{access_token}/{file_path}"
         find_index = file_path.find('.') + 1
         file_type = file_path[find_index:]
-        _logger.info(file_type)
         file_response = requests.get(download_url, timeout=10)
         file_response.raise_for_status()
         file_content = file_response.content
@@ -68,17 +67,30 @@ class TelegramIntegration(http.Controller):
             attachment_ids=[attachment.id]
         )
 
-    def send_notification(self,data):
-        channel = 'telegram_updates'
-        message = 'telegram_message'
-        self.env['bus.bus'].sudo()._sendone(channel,message,data)
+    def save_telegram_video(self, crm_lead, attachment):
+        video_url = f"/web/content/{attachment.id}?download=false"
+
+        body = Markup(f'''
+                               Telegram video: <a href="{video_url}" target="_blank">Play video</a>
+                           ''')
+
+        return crm_lead.message_post(
+            body=body,
+            message_type="comment",
+            attachment_ids=[attachment.id],
+        )
+
+    # def send_notification(self, data):
+    #     channel = 'telegram_updates'
+    #     message = 'telegram_message'
+    #     self.env['bus.bus'].sudo()._sendone(channel, message, data)
 
     @http.route('/api/telegram/webhook', type='http', auth="public", methods=['POST'], csrf=False)
     def webhook(self, **kwargs):
         try:
             payload = request.httprequest.data or b"{}"
             data = json.loads(payload)
-            _logger.info(data)
+
             message = data.get('message')
             if not message:
                 return self.valid_response({
@@ -99,6 +111,7 @@ class TelegramIntegration(http.Controller):
             message_text = message.get('text') or ''
             photo = message.get('photo')
             sticker = message.get('sticker')
+            video = message.get('video')
             if existing_user:
                 crm_lead = request.env['crm.lead'].sudo().search(
                     [('partner_id', '=', existing_user.partner_id.id)],
@@ -110,37 +123,30 @@ class TelegramIntegration(http.Controller):
                     attachment = self.save_file(file_id, crm_lead)
                     self.save_chatter_message(crm_lead, attachment)
 
-                elif crm_lead and message_text:
+                if crm_lead and message_text:
                     crm_lead.message_post(
                         body=message_text,
                         message_type='comment'
                     )
-                    self.send_notification({
-                        'type' : 'Telegram Messages',
-                        'lead_id' : crm_lead.id,
-                        'message' : message_text,
-                    })
-                elif sticker:
+                    # self.send_notification(data={
+                    #     'type' : 'Telegram Messages',
+                    #     'lead_id' : crm_lead.id,
+                    #     'message' : message_text,
+                    # })
+
+                if sticker:
                     file_id = sticker['thumbnail']['file_id']
                     attachment = self.save_file(file_id, crm_lead)
                     self.save_chatter_message(crm_lead, attachment)
-                else:
-                    file_id = message.get('video')['file_id']
+
+                if video:
+                    file_id = video['file_id']
                     attachment = self.save_file(file_id, crm_lead)
-                    video_url = f"/web/content/{attachment.id}?download=false"
+                    self.save_telegram_video(crm_lead,attachment)
 
-                    body = Markup(f'''
-                        Telegram video: <a href="{video_url}" target="_blank">Play video</a>
-                    ''')
-
-                    crm_lead.message_post(
-                        body=body,
-                        message_type="comment",
-                        attachment_ids=[attachment.id],
-                    )
                 return self.valid_response({
                     'success': True,
-                    'message': 'Customer Account Already Exists',
+                    'message': 'Update Successfully',
                 })
 
             user_name = message_from.get('username')
@@ -169,30 +175,22 @@ class TelegramIntegration(http.Controller):
                     message_type='comment'
                 )
 
-            elif photo:
+            if photo:
                 best_photo = photo[-1]
                 file_id = best_photo['file_id']
                 attachment = self.save_file(file_id, crm_lead)
                 self.save_chatter_message(crm_lead, attachment)
 
-            elif sticker:
+            if sticker:
                 file_id = sticker['thumbnail']['file_id']
                 attachment = self.save_file(file_id, crm_lead)
                 self.save_chatter_message(crm_lead, attachment)
 
-            else:
-                video = message.get('video')
+            if video:
                 file_id = video['file_id']
                 attachment = self.save_file(file_id, crm_lead)
-                video_url = f"/web/content/{attachment.id}?download=false"
-                body = Markup(f'''
-                              Telegram Video <a href="{video_url}" target="_blank">Play video</a>
-                              ''')
-                crm_lead.message_post(
-                    body=body,
-                    message_type='comment',
-                    attachment_ids=[attachment.id],
-                )
+                self.save_telegram_video(crm_lead, attachment)
+
             return self.valid_response({
                 'success': True,
                 'message': 'New Customer Account Created',
